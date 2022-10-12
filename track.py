@@ -10,6 +10,7 @@ import numpy as np
 from pathlib import Path
 import torch
 import torch.backends.cudnn as cudnn
+
 # limit the number of cpus used by high performance libraries
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -41,6 +42,41 @@ from strong_sort.utils.parser import get_config
 from strong_sort.strong_sort import StrongSORT
 from Person_Attribute_Recognition_MarketDuke.net import get_model
 
+######################################################################
+#mySQL Database Settings
+import mysql.connector
+
+class NumpyMySQLConverter(mysql.connector.conversion.MySQLConverter):
+    """ A mysql.connector Converter that handles Numpy types """
+
+    def _float32_to_mysql(self, value):
+        return float(value)
+
+    def _float64_to_mysql(self, value):
+        return float(value)
+
+    def _int32_to_mysql(self, value):
+        return int(value)
+
+    def _int64_to_mysql(self, value):
+        return int(value)
+
+# connecting to database
+mydb = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="Deepakraj@123",
+  database="mydatabase"
+)
+mydb.set_converter_class(NumpyMySQLConverter)
+mycursor = mydb.cursor()
+# query format
+query = "insert into cctv_data_table (video_id, person_Id, timeframe, young, teenager, adult, old, \
+       backpack, bag, handbag, clothes, down, up, hair, hat, \
+       gender, upblack, upwhite, upred, uppurple, upyellow, \
+       upgrey, upblue, upgreen, downblack, downwhite, downpink, \
+       downpurple, downyellow, downgrey, downblue, downgreen, \
+       downbrown) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
 ######################################################################
 # PAR Settings
@@ -91,7 +127,6 @@ class predict_decoder(object):
         # print(self.attribute_dict)
         for idx in range(self.num_label):
             name, chooce = self.attribute_dict[self.label_list[idx]]
-            # print(name, chooce, pred[idx], chooce[pred[idx]]);
             if chooce[pred[idx]]:
                 print('{}: {}'.format(name, chooce[pred[idx]]))
 
@@ -262,6 +297,7 @@ def run(
             annotator = Annotator(im0, line_width=2, pil=not ascii)
             if cfg.STRONGSORT.ECC:  # camera motion compensation
                 strongsort_list[i].tracker.camera_update(prev_frames[i], curr_frames[i])
+            # print("****************", len(det));
             if det is not None and len(det):
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_coords(im.shape[2:], det[:, :4], im0.shape).round()
@@ -323,9 +359,15 @@ def run(
                                         out = par_model.forward(crop_image)
                                     else:
                                         out, _ = par_model.forward(crop_image)
-
-                                    pred = torch.gt(out, torch.ones_like(out)/2 )  # threshold=0.5
-                                    Dec.decode(pred)
+                                    values = list(out.numpy()[0])
+                                    values.insert(0, str(frame_idx))
+                                    values.insert(0, str(id))
+                                    values.insert(0, "video 1")
+                                    # print(values)
+                                    mycursor.execute(query, values)
+                                    mydb.commit()
+                                    # pred = torch.gt(out, torch.ones_like(out)/2 )  # threshold=0.5
+                                    # Dec.decode(pred)
                                     t7 = time_sync();
 
 
