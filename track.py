@@ -169,6 +169,7 @@ def run(
         dataset = "market",
         backbone = "resnet50",
         use_id = True,
+        frame_skip = 0,
 ):
 
     source = str(source)
@@ -248,7 +249,10 @@ def run(
     dt, seen = [0.0, 0.0, 0.0, 0.0], 0
     curr_frames, prev_frames = [None] * nr_sources, [None] * nr_sources
     for frame_idx, (path, im, im0s, vid_cap, s) in enumerate(dataset):
-
+        # skipping frames
+        if(frame_skip!=0 and frame_idx%frame_skip!=0):
+            continue;
+        
         t1 = time_sync()
         im = torch.from_numpy(im).to(device)
         im = im.half() if half else im.float()  # uint8 to fp16/32
@@ -448,6 +452,7 @@ def parse_opt():
     parser.add_argument('--dataset', default='market', type=str, help='dataset for PAR')
     parser.add_argument('--backbone', default='resnet50', type=str, help='model for PAR')
     parser.add_argument('--use-id', action='store_true', help='use identity loss for PAR')
+    parser.add_argument('--frame-skip', default=0, type=int, help='number of frames to skip')
     opt = parser.parse_args()
     assert opt.dataset in ['market', 'duke']
     assert opt.backbone in ['resnet50', 'resnet34', 'resnet18', 'densenet121']
@@ -455,10 +460,12 @@ def parse_opt():
     print_args(vars(opt))
     return opt
 
-
 def main(opt):
+    t1 = time_sync()
     check_requirements(requirements=ROOT / 'requirements.txt', exclude=('tensorboard', 'thop'))
     run(**vars(opt))
+    t2 = time_sync();
+    logging.info(f'******************** Total Execution Time is : {t2-t1:.3f}s *******************"')
 
 
 if __name__ == "__main__":
