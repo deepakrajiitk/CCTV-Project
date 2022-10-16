@@ -396,7 +396,7 @@ def run(
                                 crop = save_one_box(bboxes, imc, file=save_dir / 'crops' / txt_file_name / names[c] / f'{id}' / f'{image_file_name}.jpg', BGR=True)
                                 # getting attributes using PAR
                                 # tracking only persons (class 0)
-                                if(c==2):
+                                if(c==0):
                                     t6 = time_sync()
                                     crop_image = load_image(Image.fromarray(crop[..., ::-1]))
                                     if not use_id:
