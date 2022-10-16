@@ -71,12 +71,48 @@ mydb = mysql.connector.connect(
 mydb.set_converter_class(NumpyMySQLConverter)
 mycursor = mydb.cursor()
 # query format
-query = "insert into cctv_data_table (video_id, person_Id, timeframe, young, teenager, adult, old, \
+table_creation_query = "CREATE TABLE if not exists CCTV_Table \
+(date VARCHAR(255) NOT NULL, \
+video_id VARCHAR(255) NOT NULL, \
+person_id VARCHAR(255) NOT NULL, \
+timeframe VARCHAR(255) NOT NULL, \
+young float NOT NULL, \
+teenager float NOT NULL, \
+adult float NOT NULL, \
+old float NOT NULL, \
+backpack float NOT NULL, \
+bag float NOT NULL, \
+handbag float NOT NULL, \
+clothes float NOT NULL, \
+down float NOT NULL, \
+up float NOT NULL, \
+hair float NOT NULL, \
+hat float NOT NULL, \
+gender float NOT NULL, \
+upblack float NOT NULL, \
+upwhite float NOT NULL, \
+upred float NOT NULL, \
+uppurple float NOT NULL, \
+upyellow float NOT NULL, \
+upgrey float NOT NULL, \
+upblue float NOT NULL, \
+upgreen float NOT NULL, \
+downblack float NOT NULL, \
+downwhite float NOT NULL, \
+downpink float NOT NULL, \
+downpurple float NOT NULL, \
+downyellow float NOT NULL, \
+downgrey float NOT NULL, \
+downblue float NOT NULL, \
+downgreen float NOT NULL, \
+downbrown float NOT NULL)"
+mycursor.execute(table_creation_query);
+query = "insert into CCTV_Table (date, video_id, person_Id, timeframe, young, teenager, adult, old, \
        backpack, bag, handbag, clothes, down, up, hair, hat, \
        gender, upblack, upwhite, upred, uppurple, upyellow, \
        upgrey, upblue, upgreen, downblack, downwhite, downpink, \
        downpurple, downyellow, downgrey, downblue, downgreen, \
-       downbrown) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+       downbrown) values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
 
 ######################################################################
 # PAR Settings
@@ -135,6 +171,8 @@ logging.getLogger().removeHandler(logging.getLogger().handlers[0])
 
 @torch.no_grad()
 def run(
+        date='01_01_2022',
+        video_id='0',
         source='0',
         yolo_weights=WEIGHTS / 'yolov5m.pt',  # model.pt path(s),
         strong_sort_weights=WEIGHTS / 'osnet_x0_25_msmt17.pt',  # model.pt path,
@@ -353,10 +391,12 @@ def run(
                             annotator.box_label(bboxes, label, color=colors(c, True))
                             if save_crop:
                                 txt_file_name = txt_file_name if (isinstance(path, list) and len(path) > 1) else ''
-                                crop = save_one_box(bboxes, imc, file=save_dir / 'crops' / txt_file_name / names[c] / f'{id}' / f'{p.stem}.jpg', BGR=True)
+                                image_file_name = str(date)+"_"+str(video_id)+"_Person_"+str(id)+"_"+str(frame_idx);
+                                # print("============", save_dir)
+                                crop = save_one_box(bboxes, imc, file=save_dir / 'crops' / txt_file_name / names[c] / f'{id}' / f'{image_file_name}.jpg', BGR=True)
                                 # getting attributes using PAR
                                 # tracking only persons (class 0)
-                                if(c==0):
+                                if(c==2):
                                     t6 = time_sync()
                                     crop_image = load_image(Image.fromarray(crop[..., ::-1]))
                                     if not use_id:
@@ -366,7 +406,8 @@ def run(
                                     values = list(out.numpy()[0])
                                     values.insert(0, str(frame_idx))
                                     values.insert(0, str(id))
-                                    values.insert(0, "video 1")
+                                    values.insert(0, str(video_id))
+                                    values.insert(0, str(date))
                                     # print(values)
                                     mycursor.execute(query, values)
                                     mydb.commit()
