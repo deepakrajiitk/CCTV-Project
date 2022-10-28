@@ -1,4 +1,4 @@
-# Yolov5 + StrongSORT with OSNet
+# Yolov5 + StrongSORT + Person Attribute Recognition
 
 
 
